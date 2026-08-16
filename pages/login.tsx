@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -6,26 +7,25 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Login failed');
-      // In production, use secure httpOnly cookies (server-set)
-      localStorage.setItem('token', data.token);
-      window.location.href = '/dashboard';
-    } catch (err: any) {
-      setError(err.message || 'Unknown error');
-    } finally {
+
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+      callbackUrl: '/dashboard'
+    });
+
+    if (!result || result.error) {
+      setError('Invalid email or password');
       setLoading(false);
+      return;
     }
+
+    window.location.href = result.url || '/dashboard';
   }
 
   return (
@@ -69,20 +69,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <span>Ou avec </span>
-          <button
-            onClick={() => (window.location.href = '/api/auth/oauth?provider=instagram')}
-            className="ml-2 underline"
-          >
-            Instagram
-          </button>
-          <span className="mx-1">·</span>
-          <button
-            onClick={() => (window.location.href = '/api/auth/oauth?provider=tiktok')}
-            className="underline"
-          >
-            TikTok
-          </button>
+          <span>OAuth placeholders: Instagram · TikTok</span>
         </div>
 
         <p className="mt-6 text-xs text-gray-400">
